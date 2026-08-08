@@ -9,6 +9,10 @@ import {
 } from '@mui/material';
 import { useGame } from '../context/GameContext';
 
+function normalizeAnswer(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
 export default function FastMoneyBoard() {
   const { state, dispatch, unlock } = useGame();
   const fm = state.fastMoney;
@@ -166,6 +170,19 @@ export default function FastMoneyBoard() {
                 <Stack spacing={1}>
                   {p.answers.map((ans, i) => {
                     const key = `${pNum}-${i}`;
+                    const configuredMatch = fm.answerKey[i]?.find(
+                      (candidate) =>
+                        normalizeAnswer(candidate.text) ===
+                        normalizeAnswer(ans.text),
+                    );
+                    const duplicatesPlayerOne =
+                      pNum === 2 &&
+                      normalizeAnswer(fm.player1.answers[i]?.text ?? '') ===
+                        normalizeAnswer(ans.text) &&
+                      Boolean(ans.text.trim());
+                    const automaticPoints = duplicatesPlayerOne
+                      ? 0
+                      : configuredMatch?.points ?? 0;
                     return (
                       <Stack
                         key={key}
@@ -194,7 +211,7 @@ export default function FastMoneyBoard() {
                         <TextField
                           size="small"
                           type="number"
-                          placeholder="Pts"
+                          placeholder={String(automaticPoints)}
                           value={hostPointsInput[key] ?? (ans.points || '')}
                           onChange={(e) =>
                             setHostPointsInput((prev) => ({ ...prev, [key]: e.target.value }))
@@ -206,7 +223,11 @@ export default function FastMoneyBoard() {
                           variant="contained"
                           onClick={() => {
                             unlock();
-                            const pts = Number(hostPointsInput[key] ?? ans.points) || 0;
+                            const override = hostPointsInput[key];
+                            const pts =
+                              override === undefined || override === ''
+                                ? automaticPoints
+                                : Number(override) || 0;
                             dispatch({
                               type: 'FM_SET_POINTS',
                               player: pNum as 1 | 2,
@@ -221,7 +242,7 @@ export default function FastMoneyBoard() {
                             });
                           }}
                         >
-                          Score
+                          Check
                         </Button>
                         <Button
                           size="small"

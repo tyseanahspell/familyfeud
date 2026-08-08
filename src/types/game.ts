@@ -11,10 +11,17 @@ export interface Question {
   answers: Answer[];
 }
 
+export interface FastMoneyQuestion {
+  id: string;
+  prompt: string;
+  answers: Answer[];
+}
+
 export interface SurveyBoard {
   id: string;
   title: string;
   questions: Question[];
+  fastMoneyQuestions: FastMoneyQuestion[];
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +69,7 @@ export interface FastMoneyPlayer {
 
 export interface FastMoneyState {
   questionPrompts: string[];
+  answerKey: Array<Array<{ text: string; points: number }>>;
   player1: FastMoneyPlayer;
   player2: FastMoneyPlayer;
   currentPlayer: 1 | 2;
@@ -106,12 +114,24 @@ export function createEmptyQuestion(): Question {
   };
 }
 
+export function createEmptyFastMoneyQuestion(): FastMoneyQuestion {
+  return {
+    id: crypto.randomUUID(),
+    prompt: '',
+    answers: Array.from({ length: 5 }, (_, i) => createEmptyAnswer(i)),
+  };
+}
+
 export function createEmptyBoard(title = 'New Survey'): SurveyBoard {
   const now = new Date().toISOString();
   return {
     id: crypto.randomUUID(),
     title,
     questions: [createEmptyQuestion()],
+    fastMoneyQuestions: Array.from(
+      { length: MAX_FAST_MONEY_QUESTIONS },
+      createEmptyFastMoneyQuestion,
+    ),
     createdAt: now,
     updatedAt: now,
   };
@@ -130,7 +150,8 @@ export function createInitialRound(questionIndex = 0): RoundState {
   };
 }
 
-export function createInitialFastMoney(prompts: string[]): FastMoneyState {
+export function createInitialFastMoney(questions: FastMoneyQuestion[]): FastMoneyState {
+  const prompts = questions.map((question) => question.prompt);
   const emptyAnswers = () =>
     prompts.map(() => ({
       text: '',
@@ -141,6 +162,11 @@ export function createInitialFastMoney(prompts: string[]): FastMoneyState {
 
   return {
     questionPrompts: prompts,
+    answerKey: questions.map((question) =>
+      question.answers
+        .filter((answer) => answer.text.trim())
+        .map((answer) => ({ text: answer.text.trim(), points: answer.points })),
+    ),
     player1: {
       answers: emptyAnswers(),
       totalPoints: 0,

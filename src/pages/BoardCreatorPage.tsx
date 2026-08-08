@@ -21,6 +21,7 @@ import {
   createEmptyQuestion,
   MAX_ANSWERS,
   type Answer,
+  type FastMoneyQuestion,
   type Question,
   type SurveyBoard,
 } from '../types/game';
@@ -35,6 +36,8 @@ export default function BoardCreatorPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeQ, setActiveQ] = useState(0);
+  const [editorMode, setEditorMode] = useState<'rounds' | 'fastMoney'>('rounds');
+  const [activeFastMoneyQ, setActiveFastMoneyQ] = useState(0);
 
   useEffect(() => {
     if (!boardId) return;
@@ -46,6 +49,7 @@ export default function BoardCreatorPage() {
   }, [boardId]);
 
   const question = board.questions[activeQ] ?? board.questions[0];
+  const fastMoneyQuestion = board.fastMoneyQuestions[activeFastMoneyQ];
 
   const totalPoints = useMemo(
     () => (question?.answers ?? []).reduce((s, a) => s + (Number(a.points) || 0), 0),
@@ -66,6 +70,26 @@ export default function BoardCreatorPage() {
     }));
   };
 
+  const updateFastMoneyQuestion = (
+    updater: (question: FastMoneyQuestion) => FastMoneyQuestion,
+  ) => {
+    setBoard((previous) => ({
+      ...previous,
+      fastMoneyQuestions: previous.fastMoneyQuestions.map((question, index) =>
+        index === activeFastMoneyQ ? updater(question) : question,
+      ),
+    }));
+  };
+
+  const updateFastMoneyAnswer = (answerId: string, patch: Partial<Answer>) => {
+    updateFastMoneyQuestion((question) => ({
+      ...question,
+      answers: question.answers.map((answer) =>
+        answer.id === answerId ? { ...answer, ...patch } : answer,
+      ),
+    }));
+  };
+
   const validate = (): string | null => {
     if (!board.title.trim()) return 'Board title is required.';
     if (board.questions.length === 0) return 'Add at least one question.';
@@ -76,6 +100,25 @@ export default function BoardCreatorPage() {
       for (const a of filled) {
         if (!a.points || a.points < 1) {
           return `Each answer on question ${qi + 1} needs points ≥ 1.`;
+        }
+      }
+    }
+    const hasFastMoney = board.fastMoneyQuestions.some(
+      (question) =>
+        question.prompt.trim() ||
+        question.answers.some((answer) => answer.text.trim()),
+    );
+    if (hasFastMoney) {
+      for (const [qi, question] of board.fastMoneyQuestions.entries()) {
+        if (!question.prompt.trim()) {
+          return `Fast Money question ${qi + 1} needs a prompt.`;
+        }
+        const answers = question.answers.filter((answer) => answer.text.trim());
+        if (answers.length < 2) {
+          return `Fast Money question ${qi + 1} needs at least 2 answers.`;
+        }
+        if (answers.some((answer) => answer.points < 1)) {
+          return `Each Fast Money answer on question ${qi + 1} needs points ≥ 1.`;
         }
       }
     }
@@ -100,6 +143,19 @@ export default function BoardCreatorPage() {
             ...a,
             text: a.text.trim(),
             points: Number(a.points) || 0,
+            revealed: false,
+          }))
+          .sort((a, b) => b.points - a.points),
+      })),
+      fastMoneyQuestions: board.fastMoneyQuestions.map((question) => ({
+        ...question,
+        prompt: question.prompt.trim(),
+        answers: question.answers
+          .filter((answer) => answer.text.trim())
+          .map((answer) => ({
+            ...answer,
+            text: answer.text.trim(),
+            points: Number(answer.points) || 0,
             revealed: false,
           }))
           .sort((a, b) => b.points - a.points),
@@ -204,6 +260,23 @@ export default function BoardCreatorPage() {
           </Stack>
         </Paper>
 
+        <Stack direction="row" spacing={1} mb={3}>
+          <Button
+            variant={editorMode === 'rounds' ? 'contained' : 'outlined'}
+            onClick={() => setEditorMode('rounds')}
+          >
+            Main Game Rounds
+          </Button>
+          <Button
+            variant={editorMode === 'fastMoney' ? 'contained' : 'outlined'}
+            onClick={() => setEditorMode('fastMoney')}
+          >
+            Fast Money
+          </Button>
+        </Stack>
+
+        {editorMode === 'rounds' && (
+          <>
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={2}>
           {board.questions.map((q, i) => (
             <Button
@@ -314,6 +387,116 @@ export default function BoardCreatorPage() {
               </Button>
             )}
           </Paper>
+        )}
+          </>
+        )}
+
+        {editorMode === 'fastMoney' && fastMoneyQuestion && (
+          <>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Configure all five Fast Money questions. Each answer is matched
+              case-insensitively during play and awards its configured points.
+            </Alert>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={2}>
+              {board.fastMoneyQuestions.map((item, index) => (
+                <Button
+                  key={item.id}
+                  size="small"
+                  variant={index === activeFastMoneyQ ? 'contained' : 'outlined'}
+                  onClick={() => setActiveFastMoneyQ(index)}
+                >
+                  FM {index + 1}
+                </Button>
+              ))}
+            </Stack>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                background: 'rgba(13,33,68,0.9)',
+                border: '2px solid rgba(245,200,66,0.35)',
+              }}
+            >
+              <TextField
+                fullWidth
+                label={`Fast Money Question ${activeFastMoneyQ + 1}`}
+                value={fastMoneyQuestion.prompt}
+                onChange={(event) =>
+                  updateFastMoneyQuestion((item) => ({
+                    ...item,
+                    prompt: event.target.value,
+                  }))
+                }
+                sx={{ mb: 2 }}
+              />
+              <Typography variant="subtitle2" color="primary.light" mb={1}>
+                Accepted answers and survey points
+              </Typography>
+              <Stack spacing={1.5}>
+                {fastMoneyQuestion.answers.map((answer, index) => (
+                  <Stack
+                    key={answer.id}
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1}
+                  >
+                    <TextField
+                      fullWidth
+                      label={`Answer ${index + 1}`}
+                      value={answer.text}
+                      onChange={(event) =>
+                        updateFastMoneyAnswer(answer.id, {
+                          text: event.target.value,
+                        })
+                      }
+                    />
+                    <TextField
+                      label="Points"
+                      type="number"
+                      value={answer.points}
+                      onChange={(event) =>
+                        updateFastMoneyAnswer(answer.id, {
+                          points: Math.max(0, Number(event.target.value) || 0),
+                        })
+                      }
+                      sx={{ width: { sm: 120 } }}
+                      inputProps={{ min: 0 }}
+                    />
+                    <IconButton
+                      aria-label="Remove Fast Money answer"
+                      disabled={fastMoneyQuestion.answers.length <= 2}
+                      onClick={() =>
+                        updateFastMoneyQuestion((item) => ({
+                          ...item,
+                          answers: item.answers.filter(
+                            (candidate) => candidate.id !== answer.id,
+                          ),
+                        }))
+                      }
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                ))}
+              </Stack>
+              {fastMoneyQuestion.answers.length < MAX_ANSWERS && (
+                <Button
+                  sx={{ mt: 2 }}
+                  startIcon={<AddIcon />}
+                  onClick={() =>
+                    updateFastMoneyQuestion((item) => ({
+                      ...item,
+                      answers: [
+                        ...item.answers,
+                        createEmptyAnswer(item.answers.length),
+                      ],
+                    }))
+                  }
+                >
+                  Add Answer
+                </Button>
+              )}
+            </Paper>
+          </>
         )}
       </Container>
     </Box>

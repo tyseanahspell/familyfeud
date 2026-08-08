@@ -1,4 +1,7 @@
-import type { SurveyBoard } from '../types/game';
+import {
+  createEmptyFastMoneyQuestion,
+  type SurveyBoard,
+} from '../types/game';
 
 const BOARDS_KEY = 'familyfeud_boards';
 const ACTIVE_KEY = 'familyfeud_active_board';
@@ -8,7 +11,7 @@ export function loadBoards(): SurveyBoard[] {
   try {
     const raw = localStorage.getItem(BOARDS_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as SurveyBoard[];
+    return (JSON.parse(raw) as SurveyBoard[]).map(normalizeBoard);
   } catch {
     return [];
   }
@@ -70,7 +73,7 @@ export function importBoardJson(json: string): SurveyBoard {
   if (!parsed.title || !Array.isArray(parsed.questions)) {
     throw new Error('Invalid board format');
   }
-  return {
+  return normalizeBoard({
     ...parsed,
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
@@ -84,5 +87,29 @@ export function importBoardJson(json: string): SurveyBoard {
         revealed: false,
       })),
     })),
+  });
+}
+
+function normalizeBoard(board: SurveyBoard): SurveyBoard {
+  const configured = Array.isArray(board.fastMoneyQuestions)
+    ? board.fastMoneyQuestions
+    : [];
+  const fastMoneyQuestions = configured.map((question) => ({
+    ...question,
+    id: question.id || crypto.randomUUID(),
+    answers: (question.answers ?? []).map((answer) => ({
+      ...answer,
+      id: answer.id || crypto.randomUUID(),
+      revealed: false,
+    })),
+  }));
+
+  while (fastMoneyQuestions.length < 5) {
+    fastMoneyQuestions.push(createEmptyFastMoneyQuestion());
+  }
+
+  return {
+    ...board,
+    fastMoneyQuestions: fastMoneyQuestions.slice(0, 5),
   };
 }

@@ -1,6 +1,53 @@
 {
   "id": "sample-board-001",
   "title": "Sample Family Night Survey",
+  "fastMoneyQuestions": [
+    {
+      "id": "fm1",
+      "prompt": "Name something you do before leaving the house",
+      "answers": [
+        { "id": "fm1a1", "text": "Lock the door", "points": 38, "revealed": false },
+        { "id": "fm1a2", "text": "Check your phone", "points": 24, "revealed": false },
+        { "id": "fm1a3", "text": "Turn off the lights", "points": 18, "revealed": false }
+      ]
+    },
+    {
+      "id": "fm2",
+      "prompt": "Name a popular breakfast food",
+      "answers": [
+        { "id": "fm2a1", "text": "Eggs", "points": 42, "revealed": false },
+        { "id": "fm2a2", "text": "Cereal", "points": 28, "revealed": false },
+        { "id": "fm2a3", "text": "Pancakes", "points": 17, "revealed": false }
+      ]
+    },
+    {
+      "id": "fm3",
+      "prompt": "Name something people lose often",
+      "answers": [
+        { "id": "fm3a1", "text": "Keys", "points": 45, "revealed": false },
+        { "id": "fm3a2", "text": "Phone", "points": 26, "revealed": false },
+        { "id": "fm3a3", "text": "Wallet", "points": 16, "revealed": false }
+      ]
+    },
+    {
+      "id": "fm4",
+      "prompt": "Name a reason someone might be late",
+      "answers": [
+        { "id": "fm4a1", "text": "Traffic", "points": 47, "revealed": false },
+        { "id": "fm4a2", "text": "Overslept", "points": 30, "revealed": false },
+        { "id": "fm4a3", "text": "Car trouble", "points": 12, "revealed": false }
+      ]
+    },
+    {
+      "id": "fm5",
+      "prompt": "Name something found in a kitchen",
+      "answers": [
+        { "id": "fm5a1", "text": "Refrigerator", "points": 36, "revealed": false },
+        { "id": "fm5a2", "text": "Stove", "points": 29, "revealed": false },
+        { "id": "fm5a3", "text": "Sink", "points": 21, "revealed": false }
+      ]
+    }
+  ],
   "createdAt": "2026-08-08T00:00:00.000Z",
   "updatedAt": "2026-08-08T00:00:00.000Z",
   "questions": [

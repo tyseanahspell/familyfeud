@@ -163,7 +163,7 @@ export default function HostControls({ open, onClose }: Props) {
                   });
                 }}
               >
-                Steal with: {a.text} ({a.points})
+                Resolve with hidden answer #{answers.indexOf(a) + 1}
               </Button>
             ))}
             <Button
@@ -197,7 +197,7 @@ export default function HostControls({ open, onClose }: Props) {
               else dispatch({ type: 'REVEAL_ANSWER', answerId: a.id });
             }}
           >
-            {i + 1}. {a.revealed ? 'Hide' : 'Reveal'}: {a.text} ({a.points})
+            {i + 1}. {a.revealed ? `Hide: ${a.text} (${a.points})` : 'Reveal hidden answer'}
           </Button>
         ))}
       </Stack>

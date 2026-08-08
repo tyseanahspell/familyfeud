@@ -4,13 +4,13 @@ Production-ready React game-show board for creating and playing Family Feud roun
 
 ## Features
 
-- **Board creator** — surveys with custom answers and point values; import/export JSON
+- **Board creator** — main-game and Fast Money surveys with custom answers and point values; import/export JSON
 - **Live game board** — classic numbered panels, reveal animations, round points
 - **Teams & scoreboard** — named families with live scores
 - **Strike system** — three strikes then steal opportunity
 - **Steal rounds** — host resolves steal success/failure and awards points
 - **Fast Money** — timed two-player round with host scoring and target (200)
-- **Host controls** — reveal answers, strikes, control/face-off, score adjust, sound toggle
+- **Host controls** — case-insensitive answer checking directly below the board, strikes, control/face-off, score adjust, sound toggle
 - **Sound effects** — Web Audio buzzers, reveals, wins (no external audio files required)
 
 ## Quick start (development)
@@ -59,7 +59,7 @@ docker compose down
 1. Set team names on the home screen.
 2. Create a board (or import `public/sample-board.json`).
 3. Open **Play** and keep **Host Controls** available on a second screen or tablet.
-4. Face-off: assign control to the winning team, reveal answers, add strikes on misses.
+4. Face-off: assign control, type each response into the on-board Host Console, and press **Check**. Correct answers reveal automatically; misses add a strike.
 5. At three strikes, resolve the steal from Host Controls.
 6. Award the round (or let steal resolution award automatically), then reveal remaining answers.
 7. Start **Fast Money** from the top bar when ready.

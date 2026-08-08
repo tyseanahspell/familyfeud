@@ -12,6 +12,7 @@ import {
   createInitialRound,
   otherTeam,
   type Answer,
+  type FastMoneyQuestion,
   type GameState,
   type Question,
   type SurveyBoard,
@@ -40,7 +41,7 @@ type Action =
   | { type: 'TOGGLE_SOUND' }
   | { type: 'TOGGLE_HOST_PANEL' }
   | { type: 'SET_MODE'; mode: 'main' | 'fast_money' }
-  | { type: 'INIT_FAST_MONEY'; prompts: string[] }
+  | { type: 'INIT_FAST_MONEY'; questions: FastMoneyQuestion[] }
   | { type: 'FM_SET_RUNNING'; running: boolean }
   | { type: 'FM_TICK' }
   | { type: 'FM_SET_ANSWER'; player: 1 | 2; index: number; text: string }
@@ -336,7 +337,7 @@ function reducer(state: GameState, action: Action): GameState {
       return {
         ...state,
         mode: 'fast_money',
-        fastMoney: createInitialFastMoney(action.prompts),
+        fastMoney: createInitialFastMoney(action.questions),
       };
     }
     case 'FM_SET_RUNNING':

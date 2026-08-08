@@ -4,13 +4,8 @@ import {
   AppBar,
   Box,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   Stack,
-  TextField,
   Toolbar,
   Typography,
 } from '@mui/material';
@@ -22,17 +17,13 @@ import StrikeDisplay from '../components/StrikeDisplay';
 import AnswerBoard from '../components/AnswerBoard';
 import HostControls from '../components/HostControls';
 import FastMoneyBoard from '../components/FastMoneyBoard';
+import BoardHostControls from '../components/BoardHostControls';
 import { useGame } from '../context/GameContext';
-import { MAX_FAST_MONEY_QUESTIONS } from '../types/game';
 
 export default function GamePage() {
   const navigate = useNavigate();
   const { state, dispatch, currentQuestion, unlock } = useGame();
   const [hostOpen, setHostOpen] = useState(state.hostPanelOpen);
-  const [fmDialog, setFmDialog] = useState(false);
-  const [fmPrompts, setFmPrompts] = useState<string[]>(
-    Array.from({ length: MAX_FAST_MONEY_QUESTIONS }, () => ''),
-  );
 
   const phaseLabel = useMemo(() => {
     switch (state.round.phase) {
@@ -64,12 +55,16 @@ export default function GamePage() {
     );
   }
 
+  const configuredFastMoney = state.board.fastMoneyQuestions.filter(
+    (question) =>
+      question.prompt.trim() &&
+      question.answers.some((answer) => answer.text.trim()),
+  );
+
   const startFastMoney = () => {
-    const prompts = fmPrompts.map((p) => p.trim()).filter(Boolean);
-    if (prompts.length < 3) return;
+    if (configuredFastMoney.length < 3) return;
     unlock();
-    dispatch({ type: 'INIT_FAST_MONEY', prompts });
-    setFmDialog(false);
+    dispatch({ type: 'INIT_FAST_MONEY', questions: configuredFastMoney });
   };
 
   return (
@@ -101,19 +96,8 @@ export default function GamePage() {
           <Button
             color="inherit"
             startIcon={<BoltIcon />}
-            onClick={() => {
-              // Prefill from unused board questions if available
-              const remaining = state.board!.questions
-                .slice(state.round.questionIndex + 1)
-                .map((q) => q.prompt)
-                .filter(Boolean);
-              if (remaining.length) {
-                setFmPrompts((prev) =>
-                  prev.map((p, i) => p || remaining[i] || ''),
-                );
-              }
-              setFmDialog(true);
-            }}
+            onClick={startFastMoney}
+            disabled={configuredFastMoney.length < 3}
           >
             Fast Money
           </Button>
@@ -175,6 +159,8 @@ export default function GamePage() {
               }}
             />
 
+            <BoardHostControls />
+
             {state.round.phase === 'steal' && (
               <Box
                 sx={{
@@ -199,38 +185,6 @@ export default function GamePage() {
       </Box>
 
       <HostControls open={hostOpen} onClose={() => setHostOpen(false)} />
-
-      <Dialog open={fmDialog} onClose={() => setFmDialog(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Start Fast Money</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Enter 3–5 rapid-fire survey questions for Fast Money.
-          </Typography>
-          <Stack spacing={1.5}>
-            {fmPrompts.map((p, i) => (
-              <TextField
-                key={i}
-                label={`Question ${i + 1}`}
-                fullWidth
-                value={p}
-                onChange={(e) =>
-                  setFmPrompts((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))
-                }
-              />
-            ))}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setFmDialog(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={startFastMoney}
-            disabled={fmPrompts.filter((p) => p.trim()).length < 3}
-          >
-            Begin
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
