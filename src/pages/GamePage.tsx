@@ -12,6 +12,7 @@ import {
 import HomeIcon from '@mui/icons-material/Home';
 import SettingsIcon from '@mui/icons-material/Settings';
 import BoltIcon from '@mui/icons-material/Bolt';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Scoreboard from '../components/Scoreboard';
 import StrikeDisplay from '../components/StrikeDisplay';
 import AnswerBoard from '../components/AnswerBoard';
@@ -160,6 +161,24 @@ export default function GamePage() {
             />
 
             <BoardHostControls />
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="contained"
+                endIcon={<ArrowForwardIcon />}
+                disabled={
+                  state.round.questionIndex >= state.board.questions.length - 1
+                }
+                onClick={() =>
+                  dispatch({
+                    type: 'SET_QUESTION',
+                    index: state.round.questionIndex + 1,
+                  })
+                }
+              >
+                Next Question
+              </Button>
+            </Box>
 
             {state.round.phase === 'steal' && (
               <Box
