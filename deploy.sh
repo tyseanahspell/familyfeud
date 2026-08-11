@@ -17,13 +17,9 @@ FAMILYFEUD_PORT="${FAMILYFEUD_PORT:-8080}"
 log() { printf '\n[%s] %s\n' "$(date '+%H:%M:%S')" "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
-require_root_or_sudo() {
+require_root() {
   if [[ "${EUID}" -eq 0 ]]; then
-    SUDO=""
-  elif command -v sudo >/dev/null 2>&1; then
-    SUDO="sudo"
-  else
-    die "This script needs root privileges or sudo to install Docker."
+    die "This script must be run as root (use sudo)." >&2
   fi
 }
 
@@ -140,7 +136,7 @@ main() {
   [[ -f "${COMPOSE_FILE}" ]] || die "Missing ${COMPOSE_FILE} in ${SCRIPT_DIR}"
   [[ -f Dockerfile ]] || die "Missing Dockerfile in ${SCRIPT_DIR}"
 
-  require_root_or_sudo
+  require_root
   detect_ubuntu
 
   case "${1:-}" in
