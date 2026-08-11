@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 # Deploy Family Feud on Ubuntu using Docker Compose.
 # Installs Docker Engine + Compose plugin if missing, then builds and starts the app.
+#
+# Usage:
+#   sudo ./deploy.sh
+#   sudo FAMILYFEUD_PORT=8080 ./deploy.sh
+#   sudo ./deploy.sh --down
+#
+
 set -euo pipefail
 
 APP_NAME="familyfeud"
 COMPOSE_FILE="docker-compose.yml"
-DEFAULT_PORT=8080
+FAMILYFEUD_PORT="${FAMILYFEUD_PORT:-8080}"
 
 log() { printf '\n[%s] %s\n' "$(date '+%H:%M:%S')" "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -92,41 +99,65 @@ compose_cmd() {
   fi
 }
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}"
+deploy_app() {
+  log "Building and starting ${APP_NAME} on port ${FAMILYFEUD_PORT}..."
+  compose_cmd up -d --build
 
-[[ -f "${COMPOSE_FILE}" ]] || die "Missing ${COMPOSE_FILE} in ${SCRIPT_DIR}"
-[[ -f Dockerfile ]] || die "Missing Dockerfile in ${SCRIPT_DIR}"
+  log "Waiting for health check..."
+  health_ok=0
+  for i in {1..30}; do
+    if curl -fsS "http://127.0.0.1:${FAMILYFEUD_PORT}/health" >/dev/null 2>&1 \
+      || wget -qO- "http://127.0.0.1:${FAMILYFEUD_PORT}/health" >/dev/null 2>&1; then
+      health_ok=1
+      break
+    fi
+    sleep 2
+  done
 
-PORT="${PORT:-$DEFAULT_PORT}"
-export PORT
-
-require_root_or_sudo
-detect_ubuntu
-install_docker
-
-log "Building and starting ${APP_NAME} on port ${PORT}..."
-compose_cmd up -d --build
-
-log "Waiting for health check..."
-health_ok=0
-for i in {1..30}; do
-  if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1 \
-    || wget -qO- "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
-    health_ok=1
-    break
+  if [[ "${health_ok}" -eq 1 ]]; then
+    HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    log "Family Feud is up: http://${HOST_IP:-localhost}:${FAMILYFEUD_PORT}"
+    compose_cmd ps
+    exit 0
   fi
-  sleep 2
-done
 
-if [[ "${health_ok}" -eq 1 ]]; then
-  HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-  log "Family Feud is up: http://${HOST_IP:-localhost}:${PORT}"
+  log "Container started but health check did not pass yet. Check logs:"
+  echo "  docker compose logs -f"
   compose_cmd ps
-  exit 0
-fi
+  exit 1
+}
 
-log "Container started but health check did not pass yet. Check logs:"
-echo "  docker compose logs -f"
-compose_cmd ps
-exit 1
+teardown() {
+  log "Stopping Family Feud..."
+  compose_cmd down
+  log "Stopped."
+}
+
+main() {
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cd "${SCRIPT_DIR}"
+
+  [[ -f "${COMPOSE_FILE}" ]] || die "Missing ${COMPOSE_FILE} in ${SCRIPT_DIR}"
+  [[ -f Dockerfile ]] || die "Missing Dockerfile in ${SCRIPT_DIR}"
+
+  require_root_or_sudo
+  detect_ubuntu
+
+  case "${1:-}" in
+    --down)
+      install_docker
+      teardown
+      ;;
+    ""|--up)
+      install_docker
+      deploy_app
+      ;;
+    *)
+      echo "Usage: sudo $0 [--up|--down]" >&2
+      echo "Optional env: FAMILYFEUD_PORT=8080" >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
