@@ -6,7 +6,7 @@ services:
     image: familyfeud:latest
     container_name: familyfeud
     ports:
-      - "${PORT:-8080}:80"
+      - "${PORT:-80}:80"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]

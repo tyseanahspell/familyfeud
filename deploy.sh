@@ -4,15 +4,16 @@
 #
 # Usage:
 #   sudo ./deploy.sh
-#   sudo FAMILYFEUD_PORT=8080 ./deploy.sh
+#   sudo FAMILYFEUD_PORT=80 ./deploy.sh
 #   sudo ./deploy.sh --down
 #
 
 set -euo pipefail
 
 APP_NAME="familyfeud"
-COMPOSE_FILE="docker-compose.yml"
-FAMILYFEUD_PORT="${FAMILYFEUD_PORT:-8080}"
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_FILE="${APP_DIR}/docker-compose.yml"
+FAMILYFEUD_PORT="${FAMILYFEUD_PORT:-80}"
 
 log() { printf '\n[%s] %s\n' "$(date '+%H:%M:%S')" "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -79,24 +80,13 @@ install_docker() {
   docker compose version || $SUDO docker compose version
 }
 
-docker_cmd() {
-  if docker info >/dev/null 2>&1; then
-    docker "$@"
-  else
-    $SUDO docker "$@"
-  fi
-}
-
 compose_cmd() {
-  if docker compose version >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-    docker compose "$@"
-  else
-    $SUDO docker compose "$@"
-  fi
+  FAMILYFEUD_PORT="${FAMILYFEUD_PORT}" docker compose -f "${COMPOSE_FILE}" "$@"
 }
 
 deploy_app() {
   log "Building and starting ${APP_NAME} on port ${FAMILYFEUD_PORT}..."
+  cd "${APP_DIR}"
   compose_cmd up -d --build
 
   log "Waiting for health check..."
@@ -117,24 +107,21 @@ deploy_app() {
     exit 0
   fi
 
-  log "Container started but health check did not pass yet. Check logs:"
-  echo "  docker compose logs -f"
-  compose_cmd ps
+  log "Service did not become healthy in time. Recent logs:"
+  compose_cmd logs --tail=80
   exit 1
 }
 
 teardown() {
   log "Stopping Family Feud..."
+  cd "${APP_DIR}"
   compose_cmd down
   log "Stopped."
 }
 
 main() {
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  cd "${SCRIPT_DIR}"
-
-  [[ -f "${COMPOSE_FILE}" ]] || die "Missing ${COMPOSE_FILE} in ${SCRIPT_DIR}"
-  [[ -f Dockerfile ]] || die "Missing Dockerfile in ${SCRIPT_DIR}"
+  [[ -f "${COMPOSE_FILE}" ]] || die "Missing ${COMPOSE_FILE} in ${APP_DIR}"
+  [[ -f Dockerfile ]] || die "Missing Dockerfile in ${APP_DIR}"
 
   require_root
   detect_ubuntu
@@ -150,7 +137,7 @@ main() {
       ;;
     *)
       echo "Usage: sudo $0 [--up|--down]" >&2
-      echo "Optional env: FAMILYFEUD_PORT=8080" >&2
+      echo "Optional env: FAMILYFEUD_PORT=80" >&2
       exit 1
       ;;
   esac
