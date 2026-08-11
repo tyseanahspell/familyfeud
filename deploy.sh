@@ -19,7 +19,7 @@ log() { printf '\n[%s] %s\n' "$(date '+%H:%M:%S')" "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 require_root() {
-  if [[ "${EUID}" -eq 0 ]]; then
+  if [[ "${EUID}" -ne 0 ]]; then
     die "This script must be run as root (use sudo)." >&2
   fi
 }
@@ -128,7 +128,6 @@ main() {
 
   case "${1:-}" in
     --down)
-      install_docker
       teardown
       ;;
     ""|--up)
